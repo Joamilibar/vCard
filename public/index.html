@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generador de QR para vCard</title>
+  <meta name="description" content="Crea un código QR de tu tarjeta de contacto (vCard) compatible con iPhone y Android, con foto incrustada y descarga en PNG." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <h1>Generador de QR para vCard</h1>
+    <p>Rellena tus datos, incrusta tu foto y descarga el código QR en PNG.<br />
+       Compatible con iPhone y Android (modelos antiguos y nuevos).</p>
+  </header>
+
+  <!-- Barra de cuenta -->
+  <div class="account-bar">
+    <!-- Estado: no autenticado -->
+    <form id="auth-form" class="auth-form">
+      <input type="email" id="authEmail" placeholder="tu@email.com" autocomplete="username" required />
+      <input type="password" id="authPassword" placeholder="Contraseña (mín. 6)" autocomplete="current-password" required />
+      <button type="button" id="loginBtn" class="btn-primary">Iniciar sesión</button>
+      <button type="button" id="registerBtn" class="btn-ghost btn-ghost-light">Crear cuenta</button>
+      <span id="authMsg" class="auth-msg" role="alert"></span>
+    </form>
+    <!-- Estado: autenticado -->
+    <div id="user-bar" class="user-bar" hidden>
+      <span>Sesión: <strong id="userEmail"></strong></span>
+      <button type="button" id="logoutBtn" class="btn-ghost btn-ghost-light">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <main class="layout">
+    <!-- Formulario -->
+    <section class="card form-card">
+      <!-- Perfiles guardados (solo con sesión) -->
+      <div id="saved-panel" class="saved-panel" hidden>
+        <h3>Mis perfiles guardados</h3>
+        <ul id="saved-list" class="saved-list"></ul>
+        <p id="saved-empty" class="hint">Aún no tienes perfiles guardados.</p>
+      </div>
+
+      <form id="vcard-form" autocomplete="on" novalidate>
+        <fieldset>
+          <legend>Datos personales</legend>
+          <div class="grid-2">
+            <label>Nombre
+              <input type="text" id="firstName" placeholder="Juan" />
+            </label>
+            <label>Apellido
+              <input type="text" id="lastName" placeholder="Pérez" />
+            </label>
+          </div>
+          <div class="grid-2">
+            <label>Organización
+              <input type="text" id="org" placeholder="Acme S.A." />
+            </label>
+            <label>Cargo
+              <input type="text" id="title" placeholder="Director Comercial" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Contacto</legend>
+          <div class="grid-2">
+            <label>Teléfono de trabajo
+              <input type="tel" id="phoneWork" placeholder="+52 55 1234 5678" />
+            </label>
+            <label>Teléfono móvil
+              <input type="tel" id="phoneMobile" placeholder="+52 55 8765 4321" />
+            </label>
+          </div>
+          <div class="grid-2">
+            <label>Email
+              <input type="email" id="email" placeholder="juan@acme.com" />
+            </label>
+            <label>Sitio web
+              <input type="url" id="website" placeholder="https://acme.com" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Dirección</legend>
+          <label>Calle
+            <input type="text" id="street" placeholder="Av. Reforma 123" />
+          </label>
+          <div class="grid-3">
+            <label>Código postal
+              <input type="text" id="zip" placeholder="06600" />
+            </label>
+            <label>Ciudad
+              <input type="text" id="city" placeholder="Ciudad de México" />
+            </label>
+            <label>Estado
+              <input type="text" id="state" placeholder="CDMX" />
+            </label>
+          </div>
+          <label>País
+            <input type="text" id="country" placeholder="México" />
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Redes sociales</legend>
+          <p class="hint">Puedes escribir solo el usuario (ej. <code>juanperez</code>) o la URL completa.</p>
+          <div class="grid-3">
+            <label>Instagram
+              <input type="text" id="instagram" placeholder="juanperez" />
+            </label>
+            <label>X (Twitter)
+              <input type="text" id="twitter" placeholder="juanperez" />
+            </label>
+            <label>TikTok
+              <input type="text" id="tiktok" placeholder="juanperez" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Foto / logo en el QR (opcional)</legend>
+          <p class="hint">Se incrusta en el centro del QR. La corrección de errores se ajusta para que siga siendo legible.</p>
+          <div class="photo-row">
+            <input type="file" id="logo" accept="image/*" />
+            <button type="button" id="removeLogo" class="btn-ghost" hidden>Quitar foto</button>
+          </div>
+        </fieldset>
+
+        <div class="actions">
+          <button type="submit" class="btn-primary">Generar QR</button>
+          <button type="button" class="btn-ghost" id="saveBtn" hidden>Guardar perfil</button>
+          <button type="reset" class="btn-ghost" id="resetBtn">Limpiar</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Resultado -->
+    <aside class="card qr-card">
+      <h2>Tu código QR</h2>
+      <div id="qr-canvas" class="qr-box" aria-live="polite">
+        <p class="qr-placeholder">Aquí aparecerá tu QR</p>
+      </div>
+      <button type="button" id="downloadBtn" class="btn-primary" disabled>Descargar PNG</button>
+      <p class="hint center">Escanéalo con la cámara para guardar el contacto.</p>
+    </aside>
+  </main>
+
+  <footer class="foot">
+    <p>vCard 3.0 · Datos guardados por usuario en MongoDB.</p>
+  </footer>
+
+  <!-- Librería de generación de QR con soporte de imagen incrustada -->
+  <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.6.0-rc.1/lib/qr-code-styling.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

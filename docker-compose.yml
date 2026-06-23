@@ -1,0 +1,34 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: vcard-mongo
+    restart: unless-stopped
+    # El puerto 27017 NO se publica al host: la app se conecta por la red
+    # interna de Docker. Descoméntalo solo si quieres conectarte con un
+    # cliente externo (Compass) y el puerto está libre en tu máquina.
+    # ports:
+    #   - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: vcard-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - MONGO_URI=mongodb://mongo:27017/vcards
+      - JWT_SECRET=${JWT_SECRET:-cambia-este-secreto-en-produccion}
+    depends_on:
+      mongo:
+        condition: service_started
+
+volumes:
+  mongo-data:
