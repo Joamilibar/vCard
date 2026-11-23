@@ -45,13 +45,27 @@ body {
   padding: .7rem .9rem;
   color: #e2e8f0;
 }
-.auth-form input {
-  flex: 1 1 160px;
-  min-width: 140px;
-}
+.auth-intro { font-size: .9rem; color: #cbd5e1; flex: 1 1 220px; }
 .auth-msg { font-size: .85rem; color: #fca5a5; flex-basis: 100%; }
 .auth-msg.ok { color: #86efac; }
 .user-bar { justify-content: space-between; }
+.user-info { display: flex; align-items: center; gap: .6rem; }
+.user-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+
+/* Botón "Continuar con Google" */
+.btn-google {
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+  background: #fff;
+  color: #3c4043;
+  border: none;
+  padding: .6rem 1.1rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+.btn-google:hover { background: #f1f5f9; }
+.btn-google .g-icon { display: block; }
 .btn-ghost-light { color: #c7d2fe; border-color: #c7d2fe; }
 .btn-ghost-light:hover { background: rgba(255,255,255,.12); }
 

@@ -14,12 +14,10 @@ const FORM_FIELDS = [
   "instagram", "twitter", "tiktok",
 ];
 
-const TOKEN_KEY = "vcard_token";
-const EMAIL_KEY = "vcard_email";
-
 let qrCode = null;        // instancia de QRCodeStyling
 let logoDataUrl = null;   // foto/logo en base64
 let editingId = null;     // id del perfil que se está editando (si aplica)
+let auth0Client = null;   // instancia del SDK de Auth0
 
 // ---- Utilidades de vCard ---------------------------------------------------
 
@@ -188,22 +186,27 @@ function resetAll() {
 //  AUTENTICACIÓN Y API
 // ============================================================
 
-function getToken() { return localStorage.getItem(TOKEN_KEY); }
+let cachedLoggedIn = false; // estado de sesión conocido (para UI síncrona)
 
-function authHeaders() {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+// Estado actual de sesión según Auth0.
+async function isLoggedIn() {
+  if (!auth0Client) return false;
+  return auth0Client.isAuthenticated();
 }
 
+// Llamada a la API añadiendo el access token de Auth0 como Bearer.
 async function api(path, options = {}) {
-  const res = await fetch(`/api${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders(),
-      ...(options.headers || {}),
-    },
-  });
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+
+  if (auth0Client && (await auth0Client.isAuthenticated())) {
+    const token = await auth0Client.getTokenSilently();
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`/api${path}`, { ...options, headers });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || "Error de servidor.");
   return body;
@@ -215,44 +218,85 @@ function setAuthMessage(text, ok = false) {
   el.classList.toggle("ok", ok);
 }
 
-function isLoggedIn() { return !!getToken(); }
+// Inicializa el cliente de Auth0 con la config pública del backend y procesa
+// la vuelta del login (callback con ?code&state).
+async function initAuth() {
+  let config;
+  try {
+    config = await api("/config");
+  } catch (err) {
+    setAuthMessage("No se pudo cargar la configuración de Auth0.");
+    return;
+  }
+  if (!config.domain || !config.clientId) {
+    setAuthMessage("Auth0 no está configurado (revisa las variables AUTH0_*).");
+    return;
+  }
 
-function updateAuthUI() {
-  const logged = isLoggedIn();
+  auth0Client = await auth0.createAuth0Client({
+    domain: config.domain,
+    clientId: config.clientId,
+    authorizationParams: {
+      audience: config.audience || undefined,
+      redirect_uri: window.location.origin,
+    },
+    useRefreshTokens: true,
+    cacheLocation: "localstorage",
+  });
+
+  // Si volvemos del login, procesa el callback y limpia la URL.
+  const params = new URLSearchParams(window.location.search);
+  if (params.has("code") && params.has("state")) {
+    try {
+      await auth0Client.handleRedirectCallback();
+    } catch (err) {
+      setAuthMessage("Error al completar el inicio de sesión.");
+    }
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  await updateAuthUI();
+}
+
+async function updateAuthUI() {
+  const logged = auth0Client ? await auth0Client.isAuthenticated() : false;
+  cachedLoggedIn = logged;
+
   document.getElementById("auth-form").hidden = logged;
   document.getElementById("user-bar").hidden = !logged;
   document.getElementById("saved-panel").hidden = !logged;
   document.getElementById("saveBtn").hidden = !logged;
+
   if (logged) {
-    document.getElementById("userEmail").textContent = localStorage.getItem(EMAIL_KEY) || "";
+    const user = await auth0Client.getUser();
+    document.getElementById("userEmail").textContent =
+      user.email || user.name || "Conectado";
+    const pic = document.getElementById("userPicture");
+    if (user.picture) {
+      pic.src = user.picture;
+      pic.hidden = false;
+    } else {
+      pic.hidden = true;
+    }
     loadProfiles();
   }
 }
 
-async function doAuth(kind) {
-  const email = document.getElementById("authEmail").value.trim();
-  const password = document.getElementById("authPassword").value;
-  setAuthMessage("");
-  try {
-    const res = await api(`/auth/${kind}`, {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-    localStorage.setItem(TOKEN_KEY, res.token);
-    localStorage.setItem(EMAIL_KEY, res.email);
-    document.getElementById("authPassword").value = "";
-    updateAuthUI();
-  } catch (err) {
-    setAuthMessage(err.message);
+function login() {
+  if (!auth0Client) {
+    setAuthMessage("Auth0 aún no está listo. Inténtalo de nuevo en un momento.");
+    return;
   }
+  // Universal Login (muestra Google y, si está activado, email/contraseña).
+  auth0Client.loginWithRedirect();
 }
 
 function logout() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(EMAIL_KEY);
   editingId = null;
   document.getElementById("saved-list").innerHTML = "";
-  updateAuthUI();
+  if (auth0Client) {
+    auth0Client.logout({ logoutParams: { returnTo: window.location.origin } });
+  }
 }
 
 // ---- Perfiles guardados ----------------------------------------------------
@@ -312,7 +356,7 @@ function renderProfiles(items) {
 }
 
 async function saveProfile() {
-  if (!isLoggedIn()) return;
+  if (!cachedLoggedIn) return;
   const data = readForm();
 
   if (!data.firstName && !data.lastName) {
@@ -366,13 +410,13 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(resetAll, 0);
   });
 
-  // Auth
-  document.getElementById("loginBtn").addEventListener("click", () => doAuth("login"));
-  document.getElementById("registerBtn").addEventListener("click", () => doAuth("register"));
+  // Auth (Auth0)
+  document.getElementById("loginBtn").addEventListener("click", login);
   document.getElementById("logoutBtn").addEventListener("click", logout);
 
   // Guardar perfil
   document.getElementById("saveBtn").addEventListener("click", saveProfile);
 
-  updateAuthUI();
+  // Inicializa Auth0 (carga config, procesa callback y actualiza la UI).
+  initAuth();
 });

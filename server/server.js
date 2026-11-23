@@ -5,7 +5,6 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
-const authRoutes = require("./routes/auth");
 const vcardRoutes = require("./routes/vcards");
 
 const app = express();
@@ -18,8 +17,17 @@ app.use(cors());
 // Límite alto para permitir fotos/logos en base64.
 app.use(express.json({ limit: "5mb" }));
 
+// Config pública de Auth0 que el frontend necesita para inicializar el SDK.
+// Son datos públicos (no secretos): dominio, client id y audience de la API.
+app.get("/api/config", (req, res) => {
+  res.json({
+    domain: process.env.AUTH0_DOMAIN || "",
+    clientId: process.env.AUTH0_CLIENT_ID || "",
+    audience: process.env.AUTH0_AUDIENCE || "",
+  });
+});
+
 // API
-app.use("/api/auth", authRoutes);
 app.use("/api/vcards", vcardRoutes);
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
@@ -31,6 +39,17 @@ app.use(express.static(publicDir));
 // Cualquier otra ruta sirve el index (SPA simple).
 app.get("*", (req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
+});
+
+// Manejo de errores (incluye los 401 que lanza express-oauth2-jwt-bearer).
+// Devuelve JSON en vez del HTML de error por defecto de Express.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  const status = err.status || err.statusCode || 500;
+  if (status >= 500) console.error("Error no controlado:", err);
+  res.status(status).json({
+    error: status === 401 ? "No autenticado." : err.message || "Error de servidor.",
+  });
 });
 
 // Conexión a MongoDB con reintentos (Mongo puede tardar en arrancar en Docker).

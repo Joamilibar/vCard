@@ -1,11 +1,12 @@
 const express = require("express");
 const Vcard = require("../models/Vcard");
-const auth = require("../middleware/auth");
+const { checkJwt, attachUser } = require("../middleware/auth");
 
 const router = express.Router();
 
-// Todas las rutas de vCards requieren autenticación.
-router.use(auth);
+// Todas las rutas de vCards requieren un token válido de Auth0 y, a partir de él,
+// resolver el usuario local (req.userId).
+router.use(checkJwt, attachUser);
 
 // Campos editables permitidos (evita inyectar campos no deseados).
 const FIELDS = [
