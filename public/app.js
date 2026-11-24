@@ -124,7 +124,7 @@ function generateQR() {
   const data = readForm();
 
   if (!data.firstName && !data.lastName) {
-    alert("Escribe al menos el nombre o el apellido para generar el QR.");
+    alert(t("msg.nameRequiredQr"));
     return;
   }
 
@@ -178,7 +178,8 @@ function resetAll() {
   editingId = null;
   qrCode = null;
   const container = document.getElementById("qr-canvas");
-  container.innerHTML = '<p class="qr-placeholder">Aquí aparecerá tu QR</p>';
+  container.innerHTML = '<p class="qr-placeholder" data-i18n="qr.placeholder"></p>';
+  applyTranslations(container);
   document.getElementById("downloadBtn").disabled = true;
 }
 
@@ -208,13 +209,17 @@ async function api(path, options = {}) {
 
   const res = await fetch(`/api${path}`, { ...options, headers });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.error || "Error de servidor.");
+  if (!res.ok) throw new Error(body.error || t("msg.serverError"));
   return body;
 }
 
-function setAuthMessage(text, ok = false) {
+// Guarda la clave (no el texto) para poder retraducir el mensaje al cambiar de idioma.
+let authMsgKey = "";
+
+function setAuthMessage(key, ok = false) {
+  authMsgKey = key;
   const el = document.getElementById("authMsg");
-  el.textContent = text;
+  el.textContent = key ? t(key) : "";
   el.classList.toggle("ok", ok);
 }
 
@@ -225,11 +230,11 @@ async function initAuth() {
   try {
     config = await api("/config");
   } catch (err) {
-    setAuthMessage("No se pudo cargar la configuración de Auth0.");
+    setAuthMessage("auth.configError");
     return;
   }
   if (!config.domain || !config.clientId) {
-    setAuthMessage("Auth0 no está configurado (revisa las variables AUTH0_*).");
+    setAuthMessage("auth.notConfigured");
     return;
   }
 
@@ -250,7 +255,7 @@ async function initAuth() {
     try {
       await auth0Client.handleRedirectCallback();
     } catch (err) {
-      setAuthMessage("Error al completar el inicio de sesión.");
+      setAuthMessage("auth.callbackError");
     }
     window.history.replaceState({}, document.title, window.location.pathname);
   }
@@ -269,8 +274,8 @@ async function updateAuthUI() {
 
   if (logged) {
     const user = await auth0Client.getUser();
-    document.getElementById("userEmail").textContent =
-      user.email || user.name || "Conectado";
+    currentUser = user;
+    renderUserName();
     const pic = document.getElementById("userPicture");
     if (user.picture) {
       pic.src = user.picture;
@@ -282,13 +287,22 @@ async function updateAuthUI() {
   }
 }
 
+let currentUser = null;
+
+function renderUserName() {
+  if (!currentUser) return;
+  document.getElementById("userEmail").textContent =
+    currentUser.email || currentUser.name || t("auth.connected");
+}
+
 function login() {
   if (!auth0Client) {
-    setAuthMessage("Auth0 aún no está listo. Inténtalo de nuevo en un momento.");
+    setAuthMessage("auth.notReady");
     return;
   }
-  // Universal Login (muestra Google y, si está activado, email/contraseña).
-  auth0Client.loginWithRedirect();
+  // Universal Login (muestra Google y, si está activado, email/contraseña),
+  // en el mismo idioma que la app.
+  auth0Client.loginWithRedirect({ authorizationParams: { ui_locales: getLang() } });
 }
 
 function logout() {
@@ -315,11 +329,14 @@ function profileName(p) {
     p.label ||
     [p.firstName, p.lastName].filter(Boolean).join(" ") ||
     p.email ||
-    "Sin nombre"
+    t("saved.noName")
   );
 }
 
+let lastProfiles = []; // para repintar la lista al cambiar de idioma
+
 function renderProfiles(items) {
+  lastProfiles = items;
   const list = document.getElementById("saved-list");
   const empty = document.getElementById("saved-empty");
   list.innerHTML = "";
@@ -336,7 +353,7 @@ function renderProfiles(items) {
     actions.className = "saved-actions";
 
     const loadBtn = document.createElement("button");
-    loadBtn.textContent = "Cargar";
+    loadBtn.textContent = t("saved.load");
     loadBtn.addEventListener("click", () => {
       fillForm(p);
       editingId = p._id;
@@ -345,7 +362,7 @@ function renderProfiles(items) {
     });
 
     const delBtn = document.createElement("button");
-    delBtn.textContent = "Eliminar";
+    delBtn.textContent = t("saved.delete");
     delBtn.className = "del";
     delBtn.addEventListener("click", () => deleteProfile(p._id));
 
@@ -360,12 +377,12 @@ async function saveProfile() {
   const data = readForm();
 
   if (!data.firstName && !data.lastName) {
-    alert("Escribe al menos el nombre o el apellido antes de guardar.");
+    alert(t("msg.nameRequiredSave"));
     return;
   }
 
   const suggested = [data.firstName, data.lastName].filter(Boolean).join(" ");
-  const label = prompt("Nombre para este perfil:", suggested);
+  const label = prompt(t("msg.profileLabel"), suggested);
   if (label === null) return; // cancelado
 
   const payload = { ...data, label: label.trim(), logo: logoDataUrl || "" };
@@ -378,26 +395,37 @@ async function saveProfile() {
       editingId = created._id;
     }
     await loadProfiles();
-    alert("Perfil guardado.");
+    alert(t("msg.saved"));
   } catch (err) {
-    alert("No se pudo guardar: " + err.message);
+    alert(t("msg.saveError", { error: err.message }));
   }
 }
 
 async function deleteProfile(id) {
-  if (!confirm("¿Eliminar este perfil?")) return;
+  if (!confirm(t("msg.confirmDelete"))) return;
   try {
     await api(`/vcards/${id}`, { method: "DELETE" });
     if (editingId === id) editingId = null;
     await loadProfiles();
   } catch (err) {
-    alert("No se pudo eliminar: " + err.message);
+    alert(t("msg.deleteError", { error: err.message }));
   }
 }
 
 // ---- Inicialización --------------------------------------------------------
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Idioma: traduce la página y conecta el selector ES / EN.
+  applyTranslations();
+  document.querySelectorAll("[data-lang]").forEach((btn) => {
+    btn.addEventListener("click", () => setLang(btn.dataset.lang));
+  });
+  onLangChange(() => {
+    setAuthMessage(authMsgKey);
+    renderUserName();
+    if (cachedLoggedIn) renderProfiles(lastProfiles);
+  });
+
   // QR
   document.getElementById("vcard-form").addEventListener("submit", (e) => {
     e.preventDefault();

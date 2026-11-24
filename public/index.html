@@ -9,8 +9,13 @@
 </head>
 <body>
   <header class="hero">
-    <h1>Generador de QR para vCard</h1>
-    <p>Rellena tus datos, incrusta tu foto y descarga el código QR en PNG.<br />
+    <!-- Selector de idioma -->
+    <div class="lang-switch" role="group" aria-label="Idioma / Language">
+      <button type="button" data-lang="es" aria-pressed="true" title="Español">ES</button>
+      <button type="button" data-lang="en" aria-pressed="false" title="English">EN</button>
+    </div>
+    <h1 data-i18n="hero.title">Generador de QR para vCard</h1>
+    <p data-i18n-html="hero.subtitle">Rellena tus datos, incrusta tu foto y descarga el código QR en PNG.<br />
        Compatible con iPhone y Android (modelos antiguos y nuevos).</p>
   </header>
 
@@ -18,7 +23,7 @@
   <div class="account-bar">
     <!-- Estado: no autenticado -->
     <div id="auth-form" class="auth-form">
-      <span class="auth-intro">Inicia sesión para guardar tus perfiles y reutilizarlos.</span>
+      <span class="auth-intro" data-i18n="auth.intro">Inicia sesión para guardar tus perfiles y reutilizarlos.</span>
       <button type="button" id="loginBtn" class="btn-google">
         <svg class="g-icon" viewBox="0 0 18 18" aria-hidden="true" width="18" height="18">
           <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.71-1.57 2.68-3.89 2.68-6.62z"/>
@@ -26,7 +31,7 @@
           <path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z"/>
           <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/>
         </svg>
-        Continuar con Google
+        <span data-i18n="auth.google">Continuar con Google</span>
       </button>
       <span id="authMsg" class="auth-msg" role="alert"></span>
     </div>
@@ -34,9 +39,9 @@
     <div id="user-bar" class="user-bar" hidden>
       <span class="user-info">
         <img id="userPicture" class="user-avatar" alt="" hidden />
-        <span>Sesión: <strong id="userEmail"></strong></span>
+        <span><span data-i18n="auth.session">Sesión:</span> <strong id="userEmail"></strong></span>
       </span>
-      <button type="button" id="logoutBtn" class="btn-ghost btn-ghost-light">Cerrar sesión</button>
+      <button type="button" id="logoutBtn" class="btn-ghost btn-ghost-light" data-i18n="auth.logout">Cerrar sesión</button>
     </div>
   </div>
 
@@ -45,125 +50,126 @@
     <section class="card form-card">
       <!-- Perfiles guardados (solo con sesión) -->
       <div id="saved-panel" class="saved-panel" hidden>
-        <h3>Mis perfiles guardados</h3>
+        <h3 data-i18n="saved.title">Mis perfiles guardados</h3>
         <ul id="saved-list" class="saved-list"></ul>
-        <p id="saved-empty" class="hint">Aún no tienes perfiles guardados.</p>
+        <p id="saved-empty" class="hint" data-i18n="saved.empty">Aún no tienes perfiles guardados.</p>
       </div>
 
       <form id="vcard-form" autocomplete="on" novalidate>
         <fieldset>
-          <legend>Datos personales</legend>
+          <legend data-i18n="form.personal">Datos personales</legend>
           <div class="grid-2">
-            <label>Nombre
-              <input type="text" id="firstName" placeholder="Juan" />
+            <label><span data-i18n="form.firstName">Nombre</span>
+              <input type="text" id="firstName" data-i18n-placeholder="ph.firstName" placeholder="Juan" />
             </label>
-            <label>Apellido
-              <input type="text" id="lastName" placeholder="Pérez" />
+            <label><span data-i18n="form.lastName">Apellido</span>
+              <input type="text" id="lastName" data-i18n-placeholder="ph.lastName" placeholder="Pérez" />
             </label>
           </div>
           <div class="grid-2">
-            <label>Organización
-              <input type="text" id="org" placeholder="Acme S.A." />
+            <label><span data-i18n="form.org">Organización</span>
+              <input type="text" id="org" data-i18n-placeholder="ph.org" placeholder="Acme S.A." />
             </label>
-            <label>Cargo
-              <input type="text" id="title" placeholder="Director Comercial" />
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Contacto</legend>
-          <div class="grid-2">
-            <label>Teléfono de trabajo
-              <input type="tel" id="phoneWork" placeholder="+52 55 1234 5678" />
-            </label>
-            <label>Teléfono móvil
-              <input type="tel" id="phoneMobile" placeholder="+52 55 8765 4321" />
-            </label>
-          </div>
-          <div class="grid-2">
-            <label>Email
-              <input type="email" id="email" placeholder="juan@acme.com" />
-            </label>
-            <label>Sitio web
-              <input type="url" id="website" placeholder="https://acme.com" />
+            <label><span data-i18n="form.title">Cargo</span>
+              <input type="text" id="title" data-i18n-placeholder="ph.title" placeholder="Director Comercial" />
             </label>
           </div>
         </fieldset>
 
         <fieldset>
-          <legend>Dirección</legend>
-          <label>Calle
-            <input type="text" id="street" placeholder="Av. Reforma 123" />
+          <legend data-i18n="form.contact">Contacto</legend>
+          <div class="grid-2">
+            <label><span data-i18n="form.phoneWork">Teléfono de trabajo</span>
+              <input type="tel" id="phoneWork" data-i18n-placeholder="ph.phoneWork" placeholder="+52 55 1234 5678" />
+            </label>
+            <label><span data-i18n="form.phoneMobile">Teléfono móvil</span>
+              <input type="tel" id="phoneMobile" data-i18n-placeholder="ph.phoneMobile" placeholder="+52 55 8765 4321" />
+            </label>
+          </div>
+          <div class="grid-2">
+            <label><span data-i18n="form.email">Email</span>
+              <input type="email" id="email" data-i18n-placeholder="ph.email" placeholder="juan@acme.com" />
+            </label>
+            <label><span data-i18n="form.website">Sitio web</span>
+              <input type="url" id="website" data-i18n-placeholder="ph.website" placeholder="https://acme.com" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="form.address">Dirección</legend>
+          <label><span data-i18n="form.street">Calle</span>
+            <input type="text" id="street" data-i18n-placeholder="ph.street" placeholder="Av. Reforma 123" />
           </label>
           <div class="grid-3">
-            <label>Código postal
-              <input type="text" id="zip" placeholder="06600" />
+            <label><span data-i18n="form.zip">Código postal</span>
+              <input type="text" id="zip" data-i18n-placeholder="ph.zip" placeholder="06600" />
             </label>
-            <label>Ciudad
-              <input type="text" id="city" placeholder="Ciudad de México" />
+            <label><span data-i18n="form.city">Ciudad</span>
+              <input type="text" id="city" data-i18n-placeholder="ph.city" placeholder="Ciudad de México" />
             </label>
-            <label>Estado
-              <input type="text" id="state" placeholder="CDMX" />
+            <label><span data-i18n="form.state">Estado</span>
+              <input type="text" id="state" data-i18n-placeholder="ph.state" placeholder="CDMX" />
             </label>
           </div>
-          <label>País
-            <input type="text" id="country" placeholder="México" />
+          <label><span data-i18n="form.country">País</span>
+            <input type="text" id="country" data-i18n-placeholder="ph.country" placeholder="México" />
           </label>
         </fieldset>
 
         <fieldset>
-          <legend>Redes sociales</legend>
-          <p class="hint">Puedes escribir solo el usuario (ej. <code>juanperez</code>) o la URL completa.</p>
+          <legend data-i18n="form.social">Redes sociales</legend>
+          <p class="hint" data-i18n-html="form.socialHint">Puedes escribir solo el usuario (ej. <code>juanperez</code>) o la URL completa.</p>
           <div class="grid-3">
             <label>Instagram
-              <input type="text" id="instagram" placeholder="juanperez" />
+              <input type="text" id="instagram" data-i18n-placeholder="ph.social" placeholder="juanperez" />
             </label>
             <label>X (Twitter)
-              <input type="text" id="twitter" placeholder="juanperez" />
+              <input type="text" id="twitter" data-i18n-placeholder="ph.social" placeholder="juanperez" />
             </label>
             <label>TikTok
-              <input type="text" id="tiktok" placeholder="juanperez" />
+              <input type="text" id="tiktok" data-i18n-placeholder="ph.social" placeholder="juanperez" />
             </label>
           </div>
         </fieldset>
 
         <fieldset>
-          <legend>Foto / logo en el QR (opcional)</legend>
-          <p class="hint">Se incrusta en el centro del QR. La corrección de errores se ajusta para que siga siendo legible.</p>
+          <legend data-i18n="form.photo">Foto / logo en el QR (opcional)</legend>
+          <p class="hint" data-i18n="form.photoHint">Se incrusta en el centro del QR. La corrección de errores se ajusta para que siga siendo legible.</p>
           <div class="photo-row">
             <input type="file" id="logo" accept="image/*" />
-            <button type="button" id="removeLogo" class="btn-ghost" hidden>Quitar foto</button>
+            <button type="button" id="removeLogo" class="btn-ghost" data-i18n="form.removePhoto" hidden>Quitar foto</button>
           </div>
         </fieldset>
 
         <div class="actions">
-          <button type="submit" class="btn-primary">Generar QR</button>
-          <button type="button" class="btn-ghost" id="saveBtn" hidden>Guardar perfil</button>
-          <button type="reset" class="btn-ghost" id="resetBtn">Limpiar</button>
+          <button type="submit" class="btn-primary" data-i18n="form.generate">Generar QR</button>
+          <button type="button" class="btn-ghost" id="saveBtn" data-i18n="form.save" hidden>Guardar perfil</button>
+          <button type="reset" class="btn-ghost" id="resetBtn" data-i18n="form.reset">Limpiar</button>
         </div>
       </form>
     </section>
 
     <!-- Resultado -->
     <aside class="card qr-card">
-      <h2>Tu código QR</h2>
+      <h2 data-i18n="qr.title">Tu código QR</h2>
       <div id="qr-canvas" class="qr-box" aria-live="polite">
-        <p class="qr-placeholder">Aquí aparecerá tu QR</p>
+        <p class="qr-placeholder" data-i18n="qr.placeholder">Aquí aparecerá tu QR</p>
       </div>
-      <button type="button" id="downloadBtn" class="btn-primary" disabled>Descargar PNG</button>
-      <p class="hint center">Escanéalo con la cámara para guardar el contacto.</p>
+      <button type="button" id="downloadBtn" class="btn-primary" data-i18n="qr.download" disabled>Descargar PNG</button>
+      <p class="hint center" data-i18n="qr.scanHint">Escanéalo con la cámara para guardar el contacto.</p>
     </aside>
   </main>
 
   <footer class="foot">
-    <p>vCard 3.0 · Datos guardados por usuario en MongoDB.</p>
+    <p data-i18n="footer">vCard 3.0 · Datos guardados por usuario en MongoDB.</p>
   </footer>
 
   <!-- Librería de generación de QR con soporte de imagen incrustada -->
   <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.6.0-rc.1/lib/qr-code-styling.js"></script>
   <!-- SDK de Auth0 para SPA (login con Google / Universal Login) -->
   <script src="https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2/dist/auth0-spa-js.production.js"></script>
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
