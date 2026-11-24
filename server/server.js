@@ -67,7 +67,18 @@ async function connectWithRetry(retries = 10, delayMs = 3000) {
   }
 }
 
+// Alinea los índices de la colección de usuarios con el esquema actual.
+// Elimina los índices heredados de la versión con email/contraseña (p. ej. el
+// único sobre `email`, que haría fallar a partir del 2.º usuario con email vacío)
+// y crea el índice parcial de `auth0Sub`. No borra ningún documento.
+async function syncUserIndexes() {
+  const User = require("./models/User");
+  const dropped = await User.syncIndexes();
+  if (dropped.length) console.log("🧹 Índices antiguos eliminados en users:", dropped.join(", "));
+}
+
 connectWithRetry()
+  .then(syncUserIndexes)
   .then(() => {
     app.listen(PORT, () => console.log(`🚀 Servidor en http://localhost:${PORT}`));
   })

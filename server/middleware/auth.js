@@ -40,11 +40,22 @@ async function attachUser(req, res, next) {
     if (payload.name) update.name = payload.name;
     if (payload.picture) update.picture = payload.picture;
 
-    const user = await User.findOneAndUpdate(
-      { auth0Sub },
-      { $set: update, $setOnInsert: { auth0Sub } },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
+    const upsert = () =>
+      User.findOneAndUpdate(
+        { auth0Sub },
+        { $set: update, $setOnInsert: { auth0Sub } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+
+    let user;
+    try {
+      user = await upsert();
+    } catch (err) {
+      // Dos peticiones simultáneas de un usuario nuevo pueden intentar crearlo a
+      // la vez; la perdedora recibe E11000. Reintentar encuentra el ya creado.
+      if (err.code !== 11000) throw err;
+      user = await upsert();
+    }
 
     req.userId = user._id;
     next();
